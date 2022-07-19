@@ -1,0 +1,303 @@
+---
+title: "Fixed Effects Estimation"
+author: "Balachandar & Mohammed"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning=F)
+```
+
+## Panel Data Analysis with R
+## Instructions:
+
+- Please replace --- with appropriate function or variable name to run chunk without any error
+
+## 1. Load the library
+
+```{r}
+library(plm)
+library(knitr)
+library(broom)
+library(tidyverse)
+library(stargazer)
+library(lmtest)
+library(gplots)
+library(foreign)
+library(strucchange)
+```
+
+
+## 2. Import Dataset (STATA version)
+
+# Rental Data from Wooldridge
+
+```{r}
+RENTAL <- read.dta("RENTAL.DTA")
+
+# Looking at the structure of the data
+str(RENTAL)
+```
+
+# Information about the data set:
+
+city: city label, 1 to 64
+year: 80 or 90
+pop: city population
+enroll: # college students enrolled
+rent: average rent
+rnthsg: renter occupied units
+tothsg: occupied housing units
+avginc: per capita income
+lenroll: log(enroll)
+lpop: log(pop)
+lrent: log(rent)
+ltothsg: log(tothsg)
+lrnthsg: log(rnthsg)
+lavginc: log(avginc)
+clenroll: change in lrent from 80 to 90
+clpop: change in lpop
+clrent: change in lrent
+cltothsg: change in ltothsg
+clrnthsg: change in lrnthsg
+clavginc: change in lavginc
+pctstu: percent of population students
+cpctstu: change in pctstu
+y90: =1 if year == 90
+
+#  Indexed by city and year
+
+```{r}
+# Converting the data frame to panel data frame to work with plm package:
+# After converting the data frame into a panel data please check the structure of the data frame
+
+rental_p <- pdata.frame(RENTAL, index=c("city", "---"))
+```
+
+## 3. Display the data
+
+```{r}
+# Looking at the structure of RENTAL and p_rental data frame:
+str(RENTAL)
+str(rental_p)
+
+# Check the first few rows of the data frame:
+head(RENTAL)
+head(rental_p)
+```
+
+#  Model lrent~y90+lpop+lavginc+pctstu
+
+## 4. OLS using lm
+
+```{r}
+ols <- lm(lrent~y90+lpop+lavginc+pctstu, RENTAL)
+
+summary(ols)
+```
+
+## 5. OLS using plm
+
+```{r}
+# This format uses the panel data frame we actually loaded 
+# When we use the data frame without panel data conversion - we need to specify the random effects variables as index:
+# What is missing here? 
+
+pooled <- plm(lrent~y90+lpop+lavginc+pctstu, data=RENTAL, model="pooling", index=c("city", "year"))
+summary(pooled)
+
+#OR use this format
+# This format uses the panel data frame we created using plm package
+# Run Pooled OLS
+
+pooled2 <- plm(lrent~y90+lpop+lavginc+pctstu, data=rental_p, model="----")
+
+summary(pooled2)
+```
+
+## Results table
+```{r}
+# Comparing the results of both approaches:
+
+stargazer(pooled, pooled2, type ="text")
+```
+
+## 6. Test for heteroscedasticity
+
+```{r}
+res <- residuals(ols)
+yhat <- fitted(ols)
+
+plot(RENTAL$pctstu, res, xlab = "%Students", ylab = "Residuals")
+plot(yhat, res,  xlab = "%Students", ylab = "Residuals" )
+```
+
+## 7. Fixed Effects
+
+# Includes within-entity effects
+```{r}
+# specifying model="within" runs the model by demeaning the data within each group
+
+fe <- plm(lrent~y90+lpop+lavginc+pctstu, data=rental_p, model="within")
+
+summary(fe)
+
+# Show fixed effects for all 64 cities
+# fixef(fe) # run this code if you wish see the fixed effects estimates of each cities - just remove the # in front of fixef(fe) to run the code
+````
+
+## 9. Test for FE vs OLS
+
+# Ho: OLS is better than FE, reject at p < 0.05
+```{r}
+
+pFtest(fe, ols)
+stargazer(pooled, fe, type = "text")
+
+# Why estimates for constant is available for the fixed effects estimator model?
+```
+
+## 10. Chow test for FE vs OLS
+
+# Ho: OLS is better than FE, reject at p < 0.05
+
+```{r}
+sctest(RENTAL$lrent ~ RENTAL$pctstu, type = "Chow", point = 10)
+
+# infer the results
+```
+
+# ------------------------------- DEMO 1 ENDS HERE -----------------------------------#
+
+## 9. Random Effects
+
+# Includes both the within-entity and between-entity effects
+
+```{r}
+# by specifying model="random", we run the random effects model:
+
+re <- plm(lrent~y90+lpop+lavginc+pctstu, data=rental_p, model="random")
+
+# Look at the summary of the results of the random effects model
+
+---(re)
+```
+
+## 10. FE VS RE
+
+## Hausman Test Ho: RE is preferred, Ha: FE is preferred (p < 0.05)
+
+```{r}
+phtest(fe, re)
+```
+
+## 12. Breusch Pagan Lagrange Multiplier Test Ho: No panel effect, i.e., OLS is better. Ha: RE is better at p <0.05
+
+```{r}
+plmtest(pooled, type = c("bp"))
+
+#plmtest(ols, type=c("bp")) 
+```
+
+## Example 2: Random effects estimator model:
+
+## Loading the data set "Grunfeld" from plm package:
+
+```{r}
+data("Grunfeld", package="plm")
+```
+
+## Data description:
+
+1. firm - observation
+2. year - date
+3. inv - gross Investment
+4. value - value of the firm
+5. capital - stock of plant and equipment
+
+## Looking at the first few rows of the data frame:
+
+```{r}
+head(Grunfeld)
+```
+
+## Converting the data frame into a panel data frame suitable to working with plm package:
+
+```{r}
+p_grunfeld <- pdata.frame(Grunfeld, index=c("firm","year"), drop.index=TRUE, row.names=TRUE)
+
+head(p_grunfeld)
+```
+
+## Run fixed effects model and random effects model:
+
+```{r}
+grun.fe <- plm(inv ~ value+capital, data = Grunfeld, model = "within")
+grun.re <- plm(inv ~ value+capital, data = Grunfeld, model = "random")
+```
+
+## Print the results of random effects model:
+
+```{r}
+summary(grun.re) # right now the model does not explain the time error component - let's do it in the next chunk
+```
+
+## Fixed effects model vs. Random effects model - Hausman Taylor test:
+
+## Hausman Test Ho: RE is preferred, Ha: FE is preferred (p < 0.05)
+
+```{r}
+phtest(grun.fe, grun.re)
+
+```
+
+# Advanced Panel effects estimation:
+
+# Run random effects model with two-ways effects:
+
+```{r}
+# This estimation of the twoways error component is based on T. Amemiya (1971)
+# The default method is "swar" from Swamy and Arora (1972) - however, it does not estimate the error for time
+# Specify the DV to complete the code
+
+grun.tways <- plm(--- ~ value+capital, data = Grunfeld, effect = "twoways",
+                  model = "random", random.method = "amemiya")
+
+summary(grun.tways)
+```
+
+# Other diagnostic tests: 
+
+
+## 13. Test for cross-sectional dependence 
+# [NOTE: Suitable only for macro panels with long time series] [Not suitable for RENTAL dataset]
+# Breusch-Pagan LM test of independence and Pasaran CD test
+# Ho: There is no cross-sectional dependence
+
+```{r}
+pcdtest(grun.fe, test = c("lm")) # Breusch-Pagan LM test
+
+pcdtest(grun.fe, test = c("cd")) # Pasaran CD test
+```
+
+
+## 14. Testing for serial correlation 
+# [NOTE: Suitable only for macro panels with long time series] [Not suitable for RENTAL dataset]
+# Ho: There is no serial correlation
+
+```{r}
+pbgtest(grun.fe)
+```
+
+## 15. Breusch - Pagan test for heteroscedasticity 
+# Ho: Homoscedasticity 
+# Ha: Heteroscedasticity
+
+```{r}  
+bptest(inv~value+capital, data = Grunfeld, studentize = F)
+```
+
+
