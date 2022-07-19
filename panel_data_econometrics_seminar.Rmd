@@ -147,7 +147,7 @@ summary(fe)
 
 # Show fixed effects for all 64 cities
 # fixef(fe) # run this code if you wish see the fixed effects estimates of each cities - just remove the # in front of fixef(fe) to run the code
-````
+```
 
 ## 9. Test for FE vs OLS
 
