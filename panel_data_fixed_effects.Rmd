@@ -1,4 +1,4 @@
----
+[---
 title: "Fixed Effects Estimation"
 author: "Balachandar & Mohammed"
 date: "`r Sys.Date()`"
@@ -148,3 +148,4 @@ pbgtest(fe)
 ```{r}  
 bptest(lrent ~ y90+lpop+lavginc+pctstu+factor(city), data=rental_p, studentize = F)
 ```
+](https://tum-conf.zoom.us/j/61089487258 (Passcode: 884769))
