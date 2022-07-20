@@ -157,7 +157,7 @@ summary(fe)
 pFtest(fe, ols)
 stargazer(pooled, fe, type = "text")
 
-# Why estimates for constant is available for the fixed effects estimator model?
+# Why estimates for constant is not available for the fixed effects estimator model?
 ```
 
 ## 10. Chow test for FE vs OLS
